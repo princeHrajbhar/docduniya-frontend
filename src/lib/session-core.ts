@@ -4,32 +4,10 @@
  * token (e.g. a JWT issued by the API) before going to production.
  */
 
-export type Role = "patient" | "doctor";
+import { ROLES, type Role, type Session } from "@/types/auth";
 
-export type PatientProfile = {
-  phone: string;
-  city: string;
-  gender?: string;
-  dob?: string;
-  bloodGroup?: string;
-};
-
-export type DoctorProfile = {
-  phone: string;
-  city: string;
-  speciality: string;
-  registrationNo: string;
-  experience: string;
-  clinic?: string;
-  fee?: string;
-};
-
-export type Session = {
-  role: Role;
-  name: string;
-  email: string;
-  profile?: PatientProfile | DoctorProfile;
-};
+export { ROLES };
+export type * from "@/types/auth";
 
 export const SESSION_COOKIE = "dd_session";
 
@@ -41,7 +19,7 @@ export function decodeSession(value: string | undefined): Session | null {
   if (!value) return null;
   try {
     const parsed = JSON.parse(decodeURIComponent(value));
-    if (parsed?.role === "patient" || parsed?.role === "doctor") {
+    if (ROLES.includes(parsed?.role)) {
       return parsed as Session;
     }
   } catch {
@@ -50,6 +28,7 @@ export function decodeSession(value: string | undefined): Session | null {
   return null;
 }
 
+/** Where each role lands after signing in. */
 export function homeFor(role: Role) {
-  return role === "doctor" ? "/doctor" : "/patient";
+  return `/${role}/dashboard`;
 }

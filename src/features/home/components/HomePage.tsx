@@ -1,38 +1,26 @@
-import { SiteHeader } from "@/components/SiteHeader";
 import {
   CtaStats,
-  Footer,
   Hero,
+  StatsStrip,
   HowItWorks,
   TopDoctors,
   TreatmentCategories,
   WhyChooseUs,
-} from "@/components/patient/Sections";
-import { Testimonials } from "@/components/patient/Testimonials";
+} from "@/features/home/components/Sections";
+import { Testimonials } from "@/features/home/components/Testimonials";
 
-const links = [
-  { href: "#treatments", label: "Treatments" },
-  { href: "#why-us", label: "Why Us" },
-  { href: "#how-it-works", label: "How It Works" },
-  { href: "#doctors", label: "Top Doctors" },
-  { href: "#testimonials", label: "Testimonials" },
-];
-
-/** The public home page; also shown to signed-in patients at /patient. */
-export function HomePage({ home }: { home: string }) {
+/** The public landing page. Header and footer come from the (public) layout. */
+export function HomePage() {
   return (
     <>
-      <SiteHeader home={home} links={links} />
-      <main>
-        <Hero />
-        <TreatmentCategories />
-        <CtaStats />
-        <WhyChooseUs />
-        <HowItWorks />
-        <TopDoctors />
-        <Testimonials />
-      </main>
-      <Footer />
+      <Hero />
+      <StatsStrip />
+      <TreatmentCategories />
+      <CtaStats />
+      <WhyChooseUs />
+      <HowItWorks />
+      <TopDoctors />
+      <Testimonials />
     </>
   );
 }

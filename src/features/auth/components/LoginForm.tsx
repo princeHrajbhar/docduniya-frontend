@@ -2,21 +2,27 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { login, type LoginState } from "@/app/actions/auth";
-import type { Role } from "@/lib/session-core";
+import { login, type LoginState } from "@/features/auth/actions";
+import type { Role } from "@/types/auth";
 
 const copy: Record<Role, { title: string; subtitle: string; other: Role; button: string }> = {
   patient: {
     title: "Patient Login",
     subtitle: "Book appointments and consult India's top doctors.",
     other: "doctor",
-    button: "bg-teal-600 hover:bg-teal-700",
+    button: "bg-brand-600 hover:bg-brand-700",
   },
   doctor: {
     title: "Doctor Login",
     subtitle: "Access your dashboard, appointments and patients.",
     other: "patient",
-    button: "bg-sky-600 hover:bg-sky-700",
+    button: "bg-brand-800 hover:bg-brand-900",
+  },
+  admin: {
+    title: "Admin Login",
+    subtitle: "Manage doctors, patients, staff and billing.",
+    other: "patient",
+    button: "bg-slate-800 hover:bg-slate-900",
   },
 };
 
@@ -45,7 +51,7 @@ export function LoginForm({ role }: { role: Role }) {
             defaultValue={state.email}
             autoComplete="email"
             placeholder="you@example.com"
-            className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+            className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <div>
@@ -60,7 +66,7 @@ export function LoginForm({ role }: { role: Role }) {
             minLength={6}
             autoComplete="current-password"
             placeholder="••••••••"
-            className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+            className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
 
@@ -79,16 +85,19 @@ export function LoginForm({ role }: { role: Role }) {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-600">
-        New to DocDuniya?{" "}
-        <Link href={`/signup/${role}`} className="font-semibold text-teal-700 hover:underline">
-          Create {role === "doctor" ? "a doctor" : "an"} account
-        </Link>
-      </p>
+      {/* Admin accounts are provisioned internally, so there's no public sign-up. */}
+      {role !== "admin" && (
+        <p className="mt-6 text-center text-sm text-slate-600">
+          New to DocDuniya?{" "}
+          <Link href={`/signup/${role}`} className="font-semibold text-brand-700 hover:underline">
+            Create {role === "doctor" ? "a doctor" : "an"} account
+          </Link>
+        </p>
+      )}
 
-      <p className="mt-3 text-center text-sm text-slate-600">
+      <p className={`${role === "admin" ? "mt-6" : "mt-3"} text-center text-sm text-slate-600`}>
         Are you a {c.other}?{" "}
-        <Link href={`/login/${c.other}`} className="font-semibold text-teal-700 hover:underline">
+        <Link href={`/login/${c.other}`} className="font-semibold text-brand-700 hover:underline">
           Login as {c.other === "doctor" ? "Doctor" : "Patient"}
         </Link>
       </p>

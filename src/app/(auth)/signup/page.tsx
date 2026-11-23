@@ -1,4 +1,4 @@
-import { RoleChooser } from "@/components/auth/RoleChooser";
+import { RoleChooser } from "@/features/auth/components/RoleChooser";
 
 export const metadata = { title: "Sign Up – DocDuniya" };
 

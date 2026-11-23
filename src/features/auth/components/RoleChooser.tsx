@@ -8,16 +8,16 @@ const roles = [
     icon: "🧑‍🤝‍🧑",
     title: "Patient",
     desc: "Find doctors, book appointments and consult online.",
-    accent: "from-teal-500 to-emerald-500",
-    ring: "hover:border-teal-400",
+    accent: "from-brand-500 to-brand-700",
+    ring: "hover:border-brand-400",
   },
   {
     role: "doctor",
     icon: "🩺",
     title: "Doctor",
     desc: "Manage appointments, consult patients and grow your practice.",
-    accent: "from-sky-500 to-indigo-500",
-    ring: "hover:border-sky-400",
+    accent: "from-accent-500 to-accent-700",
+    ring: "hover:border-accent-400",
   },
 ] as const;
 
@@ -52,7 +52,7 @@ export function RoleChooser({
               {verb} as {r.title}
             </p>
             <p className="mt-1 text-sm text-slate-600">{r.desc}</p>
-            <span className="mt-3 inline-block font-semibold text-teal-700 transition group-hover:translate-x-1">
+            <span className="mt-3 inline-block font-semibold text-brand-700 transition group-hover:translate-x-1">
               Continue →
             </span>
           </Link>
@@ -63,7 +63,7 @@ export function RoleChooser({
         <Link
           href={mode === "login" ? "/signup" : "/login"}
           onClick={onPick}
-          className="font-semibold text-teal-700 hover:underline"
+          className="font-semibold text-brand-700 hover:underline"
         >
           {mode === "login" ? "Create an account" : "Login"}
         </Link>

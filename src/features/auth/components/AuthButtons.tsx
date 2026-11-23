@@ -18,13 +18,13 @@ export function AuthButtons() {
       <div className="flex items-center gap-2">
         <button
           onClick={() => open("login")}
-          className="rounded-xl px-4 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-50"
+          className="rounded-xl px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50"
         >
           Login
         </button>
         <button
           onClick={() => open("signup")}
-          className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+          className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
         >
           Sign Up
         </button>

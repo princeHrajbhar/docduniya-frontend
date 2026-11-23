@@ -1,4 +1,4 @@
-import { DoctorSignupForm } from "@/components/auth/DoctorSignupForm";
+import { DoctorSignupForm } from "@/features/auth/components/DoctorSignupForm";
 
 export const metadata = { title: "Doctor Sign Up – DocDuniya" };
 

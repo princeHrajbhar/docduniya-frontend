@@ -12,6 +12,69 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/*
+ * Brand colours. Components use `brand-*` and `accent-*` (e.g. bg-brand-600,
+ * text-accent-600), so changing these scales re-themes the whole site.
+ *   brand  = muted medical green: primary buttons, links, highlights, success
+ *   accent = soft brick red (like a clinic cross): hero call-to-action, key
+ *            phrases, stats and doctor-side touches
+ * Both are kept slightly muted so the site feels calm rather than loud.
+ */
+@theme {
+  --color-brand-50: #f2f8f5;
+  --color-brand-100: #e0efe7;
+  --color-brand-200: #c3dfd0;
+  --color-brand-300: #98c8b0;
+  --color-brand-400: #69aa8b;
+  --color-brand-500: #488e6e;
+  --color-brand-600: #387358;
+  --color-brand-700: #2f5c48;
+  --color-brand-800: #294a3c;
+  --color-brand-900: #243e33;
+  --color-brand-950: #11231c;
+
+  --color-accent-50: #fcf4f4;
+  --color-accent-100: #f9e6e6;
+  --color-accent-200: #f3d1d1;
+  --color-accent-300: #e9aeae;
+  --color-accent-400: #db8080;
+  --color-accent-500: #c95a5a;
+  --color-accent-600: #b04444;
+  --color-accent-700: #933737;
+  --color-accent-800: #7a3131;
+  --color-accent-900: #672d2d;
+  --color-accent-950: #371414;
+}
+
+/*
+ * Endless scrolling strip. The strip holds two identical copies of its
+ * content and moves by one copy's width, so the loop is seamless.
+ */
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@layer components {
+  .marquee {
+    animation: marquee var(--marquee-duration, 45s) linear infinite;
+  }
+  .marquee-reverse {
+    animation-direction: reverse;
+  }
+  .marquee[data-paused],
+  .marquee-track:hover .marquee,
+  .marquee-track:focus-within .marquee {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .marquee {
+      animation: none;
+    }
+  }
+}
+
 html {
   scroll-behavior: smooth;
 }

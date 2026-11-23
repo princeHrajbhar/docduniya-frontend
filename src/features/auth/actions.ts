@@ -105,7 +105,7 @@ export async function signupPatient(
       bloodGroup: values.bloodGroup || undefined,
     },
   });
-  redirect("/patient");
+  redirect(homeFor("patient"));
 }
 
 export async function signupDoctor(
@@ -141,7 +141,7 @@ export async function signupDoctor(
       fee: values.fee || undefined,
     },
   });
-  redirect("/doctor");
+  redirect(homeFor("doctor"));
 }
 
 export async function logout() {

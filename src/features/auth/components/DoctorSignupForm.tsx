@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { signupDoctor, type SignupState } from "@/app/actions/auth";
-import { treatmentCategories } from "@/lib/data";
-import { Field, cities, fieldError, inputCls } from "./fields";
-
-const specialities = treatmentCategories.map((c) => c.name);
+import { signupDoctor, type SignupState } from "@/features/auth/actions";
+import { specialities } from "@/constants/specialities";
+import { Field, cities, fieldError, inputCls } from "@/components/forms/fields";
 
 export function DoctorSignupForm() {
   const [state, formAction, pending] = useActionState<SignupState, FormData>(
@@ -27,7 +25,7 @@ export function DoctorSignupForm() {
       {/* key resets uncontrolled inputs to the latest submitted values */}
       <form key={JSON.stringify(v)} action={formAction} noValidate className="mt-8 space-y-8">
         <fieldset className="grid gap-5 sm:grid-cols-2">
-          <legend className="mb-4 text-sm font-semibold uppercase tracking-wider text-sky-600">
+          <legend className="mb-4 text-sm font-semibold uppercase tracking-wider text-accent-600">
             Personal details
           </legend>
           <Field id="name" label="Full name" error={e.name} className="sm:col-span-2">
@@ -62,7 +60,7 @@ export function DoctorSignupForm() {
         </fieldset>
 
         <fieldset className="grid gap-5 sm:grid-cols-2">
-          <legend className="mb-4 text-sm font-semibold uppercase tracking-wider text-sky-600">
+          <legend className="mb-4 text-sm font-semibold uppercase tracking-wider text-accent-600">
             Professional details
           </legend>
           <Field id="speciality" label="Speciality" error={e.speciality}>
@@ -90,7 +88,7 @@ export function DoctorSignupForm() {
         </fieldset>
 
         <fieldset className="grid gap-5 sm:grid-cols-2">
-          <legend className="mb-4 text-sm font-semibold uppercase tracking-wider text-sky-600">
+          <legend className="mb-4 text-sm font-semibold uppercase tracking-wider text-accent-600">
             Security
           </legend>
           <Field id="password" label="Password" error={e.password}>
@@ -105,7 +103,7 @@ export function DoctorSignupForm() {
 
         <div>
           <label className="flex items-start gap-3 text-sm text-slate-600">
-            <input type="checkbox" name="terms" className="mt-0.5 h-4 w-4 accent-sky-600" />
+            <input type="checkbox" name="terms" className="mt-0.5 h-4 w-4 accent-accent-600" />
             <span>
               I confirm these details are accurate and agree to DocDuniya&apos;s Terms of Service
               and Privacy Policy.
@@ -117,7 +115,7 @@ export function DoctorSignupForm() {
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-xl bg-sky-600 py-3 font-semibold text-white transition hover:bg-sky-700 disabled:opacity-60"
+          className="w-full rounded-xl bg-brand-800 py-3 font-semibold text-white transition hover:bg-brand-900 disabled:opacity-60"
         >
           {pending ? "Creating account…" : "Create doctor account"}
         </button>
@@ -125,7 +123,7 @@ export function DoctorSignupForm() {
 
       <p className="mt-6 text-center text-sm text-slate-600">
         Already registered?{" "}
-        <Link href="/login/doctor" className="font-semibold text-teal-700 hover:underline">
+        <Link href="/login/doctor" className="font-semibold text-brand-700 hover:underline">
           Login as Doctor
         </Link>
       </p>

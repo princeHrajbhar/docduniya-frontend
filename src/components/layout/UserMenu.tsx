@@ -1,7 +1,7 @@
-import { logout } from "@/app/actions/auth";
+import { logout } from "@/features/auth/actions";
 import { getSession } from "@/lib/session";
-import { initials } from "@/lib/data";
-import { AuthButtons } from "./auth/AuthButtons";
+import { initials } from "@/lib/utils";
+import { AuthButtons } from "@/features/auth/components/AuthButtons";
 
 export async function UserMenu() {
   const session = await getSession();
@@ -23,7 +23,7 @@ export async function UserMenu() {
           {detail && ` · ${detail}`}
         </p>
       </div>
-      <span className="grid h-10 w-10 place-items-center rounded-full bg-teal-100 font-semibold text-teal-700">
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-brand-100 font-semibold text-brand-700">
         {initials(session.name)}
       </span>
       <form action={logout}>

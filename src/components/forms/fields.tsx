@@ -7,7 +7,7 @@ export const cities = [
 ];
 
 export const inputCls =
-  "mt-1 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 aria-[invalid=true]:border-red-400";
+  "mt-1 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 aria-[invalid=true]:border-red-400";
 
 /** aria attributes linking an input to its error message */
 export function fieldError(errors: Record<string, string | undefined>, key: string) {

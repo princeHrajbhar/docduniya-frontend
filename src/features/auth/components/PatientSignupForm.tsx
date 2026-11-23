@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { Field, cities, fieldError, inputCls } from "./fields";
-import { signupPatient, type SignupState } from "@/app/actions/auth";
+import { Field, cities, fieldError, inputCls } from "@/components/forms/fields";
+import { signupPatient, type SignupState } from "@/features/auth/actions";
 
 const genders = ["Male", "Female", "Other", "Prefer not to say"];
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
@@ -27,7 +27,7 @@ export function PatientSignupForm() {
       {/* key resets uncontrolled inputs to the latest submitted values */}
       <form key={JSON.stringify(v)} action={formAction} noValidate className="mt-8 space-y-8">
         <fieldset className="grid gap-5 sm:grid-cols-2">
-          <legend className="mb-4 text-sm font-semibold uppercase tracking-wider text-teal-600">
+          <legend className="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-600">
             Personal details
           </legend>
           <Field id="name" label="Full name" error={e.name} className="sm:col-span-2">
@@ -53,7 +53,7 @@ export function PatientSignupForm() {
         </fieldset>
 
         <fieldset className="grid gap-5 sm:grid-cols-2">
-          <legend className="mb-4 text-sm font-semibold uppercase tracking-wider text-teal-600">
+          <legend className="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-600">
             Contact details
           </legend>
           <Field id="email" label="Email" error={e.email}>
@@ -79,7 +79,7 @@ export function PatientSignupForm() {
         </fieldset>
 
         <fieldset className="grid gap-5 sm:grid-cols-2">
-          <legend className="mb-4 text-sm font-semibold uppercase tracking-wider text-teal-600">
+          <legend className="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-600">
             Security
           </legend>
           <Field id="password" label="Password" error={e.password}>
@@ -94,7 +94,7 @@ export function PatientSignupForm() {
 
         <div>
           <label className="flex items-start gap-3 text-sm text-slate-600">
-            <input type="checkbox" name="terms" className="mt-0.5 h-4 w-4 accent-teal-600" />
+            <input type="checkbox" name="terms" className="mt-0.5 h-4 w-4 accent-brand-600" />
             <span>I agree to DocDuniya&apos;s Terms of Service and Privacy Policy.</span>
           </label>
           {e.terms && <p className="mt-1 text-sm text-red-600">{e.terms}</p>}
@@ -103,7 +103,7 @@ export function PatientSignupForm() {
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-xl bg-teal-600 py-3 font-semibold text-white transition hover:bg-teal-700 disabled:opacity-60"
+          className="w-full rounded-xl bg-brand-600 py-3 font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
         >
           {pending ? "Creating account…" : "Create account"}
         </button>
@@ -111,7 +111,7 @@ export function PatientSignupForm() {
 
       <p className="mt-6 text-center text-sm text-slate-600">
         Already have an account?{" "}
-        <Link href="/login/patient" className="font-semibold text-teal-700 hover:underline">
+        <Link href="/login/patient" className="font-semibold text-brand-700 hover:underline">
           Login
         </Link>
       </p>
