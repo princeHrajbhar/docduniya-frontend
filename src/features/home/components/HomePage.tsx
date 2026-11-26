@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   CtaStats,
   Hero,
@@ -19,7 +20,9 @@ export function HomePage() {
       <CtaStats />
       <WhyChooseUs />
       <HowItWorks />
-      <TopDoctors />
+      <Suspense>
+        <TopDoctors />
+      </Suspense>
       <Testimonials />
     </>
   );

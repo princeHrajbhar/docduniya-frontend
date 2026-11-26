@@ -1,151 +1,211 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { api } from "@/lib/api/server";
+import { ApiError, friendlyMessage } from "@/lib/api/errors";
+import { clearAuth, getRefreshToken, getSession, homeFor, safeNext, setSession, type Role } from "@/lib/session";
+import { fail, run, str, type ActionResult } from "@/lib/actions";
+import { completeMfa, getPractitioner, resolveSession, signIn, type SignInOutcome } from "@/services/identity";
 import {
-  SESSION_COOKIE,
-  encodeSession,
-  homeFor,
-  type Role,
-  type Session,
-} from "@/lib/session";
+  createDoctorProfile,
+  createPatientProfile,
+  validateDoctor,
+  validatePatient,
+  type ProfileValues,
+} from "./profiles";
 
-export type LoginState = {
-  error?: string;
-  email?: string;
-};
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const EMAIL_RE = /^\S+@\S+\.\S+$/;
-
-async function startSession(session: Session) {
-  const store = await cookies();
-  store.set(SESSION_COOKIE, encodeSession(session), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+/** Mirrors the backend's password policy so people see problems before submitting. */
+function passwordProblem(password: string) {
+  if (password.length < 8) return "Use at least 8 characters.";
+  if (!/[A-Z]/.test(password)) return "Add an uppercase letter.";
+  if (!/[a-z]/.test(password)) return "Add a lowercase letter.";
+  if (!/[0-9]/.test(password)) return "Add a number.";
+  if (!/[^A-Za-z0-9]/.test(password)) return "Add a symbol such as ! or @.";
+  return undefined;
 }
 
-export async function login(
-  role: Role,
-  _prev: LoginState,
-  formData: FormData,
-): Promise<LoginState> {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-
-  if (!EMAIL_RE.test(email)) {
-    return { error: "Please enter a valid email address.", email };
-  }
-  if (password.length < 6) {
-    return { error: "Password must be at least 6 characters.", email };
-  }
-
-  // TODO: replace with a real API call to your backend.
-  const localPart = email.split("@")[0].replace(/[._-]+/g, " ");
-  const name = localPart.replace(/\b\w/g, (c) => c.toUpperCase());
-
-  await startSession({ role, name, email });
-  redirect(homeFor(role));
+function landing(outcome: Extract<SignInOutcome, { kind: "signed-in" }>, role: Role, next?: string) {
+  if (outcome.needsProfile && role !== "admin") return `/onboarding/${role}`;
+  return safeNext(next, role);
 }
 
-export type SignupState = {
-  errors?: Record<string, string>;
-  values?: Record<string, string>;
-};
+// ── Sign in ────────────────────────────────────────────────────────────────
 
-/** Reads the fields and runs the checks shared by patient and doctor sign-up. */
-function readCommon(formData: FormData, keys: string[]) {
-  const values: Record<string, string> = {};
-  for (const k of ["name", "email", "phone", "city", ...keys]) {
-    values[k] = String(formData.get(k) ?? "").trim();
+export type LoginState = { error?: string; email?: string; challengeToken?: string };
+
+export async function login(role: Role, next: string | undefined, _prev: LoginState, form: FormData): Promise<LoginState> {
+  const email = str(form, "email").toLowerCase();
+  const password = String(form.get("password") ?? "");
+  if (!EMAIL_RE.test(email)) return { error: "Enter a valid email address.", email };
+  if (!password) return { error: "Enter your password.", email };
+
+  let destination: string;
+  try {
+    const outcome = await signIn(email, password, role);
+    if (outcome.kind === "mfa") return { email, challengeToken: outcome.challengeToken };
+    destination = landing(outcome, role, next);
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "NOT_ADMIN") await clearAuth();
+    if (!(error instanceof ApiError) || error.status >= 500) console.error("[login]", error);
+    return { error: friendlyMessage(error), email };
   }
-  values.phone = values.phone.replace(/[\s-]/g, "");
-  const password = String(formData.get("password") ?? "");
-  const confirmPassword = String(formData.get("confirmPassword") ?? "");
-
-  const errors: Record<string, string> = {};
-  if (values.name.length < 2) errors.name = "Please enter your full name.";
-  if (!EMAIL_RE.test(values.email)) errors.email = "Please enter a valid email address.";
-  if (!/^(\+91)?[6-9]\d{9}$/.test(values.phone))
-    errors.phone = "Enter a valid 10-digit Indian mobile number.";
-  if (!values.city) errors.city = "Please select your city.";
-  if (password.length < 6) errors.password = "Password must be at least 6 characters.";
-  if (password !== confirmPassword) errors.confirmPassword = "Passwords do not match.";
-  if (formData.get("terms") !== "on") errors.terms = "Please accept the terms to continue.";
-
-  return { values, errors, phone: values.phone.slice(-10) };
+  redirect(destination);
 }
 
-export async function signupPatient(
-  _prev: SignupState,
-  formData: FormData,
-): Promise<SignupState> {
-  const { values, errors, phone } = readCommon(formData, ["gender", "dob", "bloodGroup"]);
-  if (!values.gender) errors.gender = "Please select your gender.";
-  if (!values.dob) {
-    errors.dob = "Please enter your date of birth.";
-  } else if (new Date(values.dob) > new Date()) {
-    errors.dob = "Date of birth can't be in the future.";
+export async function verifyMfa(role: Role, next: string | undefined, _prev: LoginState, form: FormData): Promise<LoginState> {
+  const challengeToken = str(form, "challengeToken");
+  const code = str(form, "code").replace(/\s/g, "");
+  const email = str(form, "email");
+  const useRecovery = !/^\d{6}$/.test(code);
+  if (!code) return { error: "Enter the 6-digit code from your authenticator app.", email, challengeToken };
+
+  let destination: string;
+  try {
+    const outcome = await completeMfa(challengeToken, useRecovery ? { recoveryCode: code } : { code }, role);
+    if (outcome.kind !== "signed-in") return { error: "Please try again.", email, challengeToken };
+    destination = landing(outcome, role, next);
+  } catch (error) {
+    const expired = error instanceof ApiError && error.status === 401;
+    return {
+      error: expired ? "This sign-in attempt expired. Enter your password again." : friendlyMessage(error),
+      email,
+      challengeToken: expired ? undefined : challengeToken,
+    };
   }
-  if (Object.keys(errors).length > 0) return { errors, values };
-
-  // TODO: send the details + password to your backend to create the account.
-  await startSession({
-    role: "patient",
-    name: values.name,
-    email: values.email,
-    profile: {
-      phone,
-      city: values.city,
-      gender: values.gender,
-      dob: values.dob,
-      bloodGroup: values.bloodGroup || undefined,
-    },
-  });
-  redirect(homeFor("patient"));
-}
-
-export async function signupDoctor(
-  _prev: SignupState,
-  formData: FormData,
-): Promise<SignupState> {
-  const { values, errors, phone } = readCommon(formData, [
-    "speciality", "registrationNo", "experience", "clinic", "fee",
-  ]);
-  values.name = values.name.replace(/^dr\.?\s*/i, "");
-  if (!values.speciality) errors.speciality = "Please select your speciality.";
-  if (values.registrationNo.length < 4)
-    errors.registrationNo = "Enter your medical council registration number.";
-  const exp = Number(values.experience);
-  if (values.experience === "" || !Number.isInteger(exp) || exp < 0 || exp > 70)
-    errors.experience = "Enter years of experience (0–70).";
-  if (values.fee && !(Number(values.fee) >= 0))
-    errors.fee = "Enter a valid fee amount.";
-  if (Object.keys(errors).length > 0) return { errors, values };
-
-  // TODO: send the details + password to your backend for verification.
-  await startSession({
-    role: "doctor",
-    name: values.name,
-    email: values.email,
-    profile: {
-      phone,
-      city: values.city,
-      speciality: values.speciality,
-      registrationNo: values.registrationNo,
-      experience: values.experience,
-      clinic: values.clinic || undefined,
-      fee: values.fee || undefined,
-    },
-  });
-  redirect(homeFor("doctor"));
+  redirect(destination);
 }
 
 export async function logout() {
-  const store = await cookies();
-  store.delete(SESSION_COOKIE);
+  const refreshToken = await getRefreshToken();
+  if (refreshToken) {
+    // Revoke the backend session too, not just this browser's cookies.
+    await api("/auth/logout", {
+      method: "POST",
+      auth: false,
+      headers: { Cookie: `refreshToken=${encodeURIComponent(refreshToken)}` },
+    }).catch(() => undefined);
+  }
+  await clearAuth();
   redirect("/");
+}
+
+// ── Sign up: details + email code ──────────────────────────────────────────
+
+export type SignupKind = "patient" | "doctor";
+export type SignupPayload = { kind: SignupKind; email: string; password: string; profile: ProfileValues };
+
+/** Step 1: validate everything, create the (unverified) account and email a code. */
+export async function requestSignupCode(payload: SignupPayload): Promise<ActionResult<{ email: string }>> {
+  const email = payload.email.trim().toLowerCase();
+  const errors = payload.kind === "patient" ? validatePatient(payload.profile) : validateDoctor(payload.profile);
+  if (!EMAIL_RE.test(email)) errors.email = "Enter a valid email address.";
+  const weak = passwordProblem(payload.password);
+  if (weak) errors.password = weak;
+  if (Object.keys(errors).length > 0) return fail("Please fix the highlighted fields.", errors);
+
+  return run(async () => {
+    await api("/auth/register", { method: "POST", auth: false, body: { email, password: payload.password } });
+    return { email };
+  });
+}
+
+export async function resendCode(email: string, type: "REGISTER" | "RESET_PASSWORD" = "REGISTER") {
+  return run(
+    () => api("/auth/resend-otp", { method: "POST", auth: false, body: { email, type } }),
+    "We've sent a new code.",
+  );
+}
+
+/** Step 2: verify the code, sign in and create the patient or doctor profile. */
+export async function completeSignup(payload: SignupPayload, otp: string): Promise<ActionResult<undefined>> {
+  const email = payload.email.trim().toLowerCase();
+  if (!/^\d{6}$/.test(otp)) return fail("Enter the 6-digit code from your email.");
+
+  const verified = await run(() => api("/auth/verify-otp", { method: "POST", auth: false, body: { email, otp } }));
+  if (!verified.ok) return verified;
+
+  let destination = homeFor(payload.kind);
+  try {
+    const outcome = await signIn(email, payload.password, payload.kind);
+    if (outcome.kind !== "signed-in") return fail("Your email is verified. Please sign in to continue.");
+    try {
+      // Cookies set during this action are not readable until the next request,
+      // so the fresh access token is passed explicitly.
+      const token = outcome.accessToken;
+      if (payload.kind === "patient") await createPatientProfile(payload.profile, email, token);
+      else await createDoctorProfile(payload.profile, email, { token });
+      const { session } = await resolveSession(payload.kind, token);
+      await setSession(session);
+    } catch (error) {
+      // The account exists and is signed in; let onboarding retry the profile step.
+      console.error("[signup] profile creation failed", error);
+      destination = `/onboarding/${payload.kind}?retry=1`;
+    }
+  } catch (error) {
+    return fail(friendlyMessage(error, "Your email is verified, but we couldn't sign you in. Please sign in."));
+  }
+  redirect(destination);
+}
+
+// ── Onboarding: signed-in account without a profile yet ────────────────────
+
+export async function completeOnboarding(kind: SignupKind, profile: ProfileValues): Promise<ActionResult<undefined>> {
+  const session = await getSession();
+  if (!session) redirect(`/login/${kind}`);
+  const errors = kind === "patient" ? validatePatient(profile) : validateDoctor(profile);
+  if (Object.keys(errors).length > 0) return fail("Please fix the highlighted fields.", errors);
+
+  const result = await run(async () => {
+    if (kind === "patient") await createPatientProfile(profile, session.email);
+    else await createDoctorProfile(profile, session.email, { practitionerExists: Boolean(await getPractitioner()) });
+    const { session: next } = await resolveSession(kind);
+    await setSession(next);
+  });
+  if (!result.ok) return result;
+  redirect(homeFor(kind));
+}
+
+// ── Passwords ──────────────────────────────────────────────────────────────
+
+export async function forgotPassword(_prev: ActionResult<undefined> | null, form: FormData) {
+  const email = str(form, "email").toLowerCase();
+  if (!EMAIL_RE.test(email)) return fail("Enter a valid email address.");
+  const result = await run(() => api<undefined>("/auth/forgot-password", { method: "POST", auth: false, body: { email } }));
+  // The backend answers the same way whether or not the account exists; so do we.
+  return result.ok
+    ? { ok: true as const, data: undefined, message: `If an account exists for ${email}, a reset link is on its way.` }
+    : result;
+}
+
+export async function resetPassword(_prev: ActionResult<undefined> | null, form: FormData) {
+  const token = str(form, "token");
+  const email = str(form, "email").toLowerCase();
+  const newPassword = String(form.get("password") ?? "");
+  const confirm = String(form.get("confirmPassword") ?? "");
+  const weak = passwordProblem(newPassword);
+  if (weak) return fail(weak, { password: weak });
+  if (newPassword !== confirm) return fail("Passwords don't match.", { confirmPassword: "Passwords don't match." });
+
+  const result = await run(() =>
+    api<undefined>("/auth/reset-password", { method: "POST", auth: false, body: { token, email, newPassword } }),
+  );
+  if (!result.ok) return result;
+  await clearAuth();
+  redirect("/login?reset=1");
+}
+
+export async function changePassword(_prev: ActionResult<undefined> | null, form: FormData) {
+  const currentPassword = String(form.get("currentPassword") ?? "");
+  const newPassword = String(form.get("newPassword") ?? "");
+  const confirmPassword = String(form.get("confirmPassword") ?? "");
+  const weak = passwordProblem(newPassword);
+  if (weak) return fail(weak, { newPassword: weak });
+  if (newPassword !== confirmPassword)
+    return fail("Passwords don't match.", { confirmPassword: "Passwords don't match." });
+  return run(
+    () => api<undefined>("/auth/change-password", { method: "POST", body: { currentPassword, newPassword, confirmPassword } }),
+    "Password updated. Other devices have been signed out.",
+  );
 }

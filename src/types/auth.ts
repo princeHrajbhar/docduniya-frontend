@@ -2,27 +2,17 @@ export const ROLES = ["patient", "doctor", "admin"] as const;
 
 export type Role = (typeof ROLES)[number];
 
-export type PatientProfile = {
-  phone: string;
-  city: string;
-  gender?: string;
-  dob?: string;
-  bloodGroup?: string;
-};
-
-export type DoctorProfile = {
-  phone: string;
-  city: string;
-  speciality: string;
-  registrationNo: string;
-  experience: string;
-  clinic?: string;
-  fee?: string;
-};
-
+/** What the frontend remembers about the signed-in account (see lib/session-core.ts). */
 export type Session = {
   role: Role;
-  name: string;
+  userId: string;
   email: string;
-  profile?: PatientProfile | DoctorProfile;
+  /** Display name: the patient's or doctor's profile name, or the email for admins. */
+  name: string;
+  /** The patient profile the account books and views records for (patients only). */
+  patientId?: string;
+  /** The doctor profile owned by the account (doctors only). */
+  doctorId?: string;
+  /** Platform permissions (admins only), used to show the sections they can open. */
+  permissions?: string[];
 };

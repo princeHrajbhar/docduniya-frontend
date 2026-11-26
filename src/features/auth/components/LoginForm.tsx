@@ -2,105 +2,149 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { login, type LoginState } from "@/features/auth/actions";
+import { Field, inputCls } from "@/components/forms/fields";
+import { SubmitButton } from "@/components/ui/interactive";
+import { Alert } from "@/components/ui/primitives";
+import { ShieldCheckIcon } from "@/components/ui/icons";
+import { login, verifyMfa, type LoginState } from "@/features/auth/actions";
 import type { Role } from "@/types/auth";
+import { AuthCard } from "./AuthCard";
 
-const copy: Record<Role, { title: string; subtitle: string; other: Role; button: string }> = {
+const copy: Record<Role, { title: string; subtitle: string; other?: Role }> = {
   patient: {
-    title: "Patient Login",
-    subtitle: "Book appointments and consult India's top doctors.",
+    title: "Welcome back",
+    subtitle: "Sign in to manage appointments, records and prescriptions.",
     other: "doctor",
-    button: "bg-brand-600 hover:bg-brand-700",
   },
   doctor: {
-    title: "Doctor Login",
-    subtitle: "Access your dashboard, appointments and patients.",
+    title: "Doctor sign in",
+    subtitle: "Your schedule, patients and verification in one place.",
     other: "patient",
-    button: "bg-brand-800 hover:bg-brand-900",
   },
   admin: {
-    title: "Admin Login",
-    subtitle: "Manage doctors, patients, staff and billing.",
-    other: "patient",
-    button: "bg-slate-800 hover:bg-slate-900",
+    title: "Admin console",
+    subtitle: "Restricted to DocDuniya platform staff.",
   },
 };
 
-export function LoginForm({ role }: { role: Role }) {
-  const [state, formAction, pending] = useActionState<LoginState, FormData>(
-    login.bind(null, role),
-    {},
-  );
+export function LoginForm({ role, next, notice }: { role: Role; next?: string; notice?: "expired" | "reset" | "verified" }) {
+  const [state, signIn] = useActionState<LoginState, FormData>(login.bind(null, role, next), {});
+  const [mfaState, confirmCode] = useActionState<LoginState, FormData>(verifyMfa.bind(null, role, next), {});
   const c = copy[role];
 
-  return (
-    <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
-      <h1 className="text-2xl font-bold">{c.title}</h1>
-      <p className="mt-1 text-slate-600">{c.subtitle}</p>
+  // A failed code keeps the challenge; an expired challenge comes back without one.
+  const expired = Boolean(mfaState.error) && !mfaState.challengeToken;
+  const challenge = expired ? undefined : (mfaState.challengeToken ?? state.challengeToken);
 
-      <form action={formAction} className="mt-8 space-y-5">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-            Email
-          </label>
+  if (state.challengeToken) {
+    return (
+      <AuthCard
+        icon={<ShieldCheckIcon className="h-6 w-6" />}
+        title="Two-step verification"
+        subtitle="Enter the 6-digit code from your authenticator app. You can also use a recovery code."
+      >
+        <form action={confirmCode} className="space-y-5">
+          <input type="hidden" name="challengeToken" value={challenge ?? ""} />
+          <input type="hidden" name="email" value={state.email ?? ""} />
+          <Field id="code" label="Verification code">
+            <input
+              id="code"
+              name="code"
+              required
+              autoFocus
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              placeholder="123 456"
+              className={`${inputCls} text-center font-mono text-lg tracking-[0.4em]`}
+            />
+          </Field>
+          {mfaState.error && <Alert tone="danger">{mfaState.error}</Alert>}
+          {challenge ? (
+            <SubmitButton className="w-full" size="lg" pendingLabel="Verifying…">
+              Verify and sign in
+            </SubmitButton>
+          ) : (
+            // A full reload resets this form's state back to the password step.
+            <a href={`/login/${role}`} className="block text-center text-sm font-semibold text-brand-700 hover:underline">
+              Start again
+            </a>
+          )}
+        </form>
+      </AuthCard>
+    );
+  }
+
+  return (
+    <AuthCard title={c.title} subtitle={c.subtitle} badge={role === "admin" ? "Staff only" : undefined}>
+      {notice === "expired" && (
+        <Alert tone="warning" className="mb-5">
+          Your session ended. Please sign in again.
+        </Alert>
+      )}
+      {notice === "reset" && (
+        <Alert tone="success" className="mb-5">
+          Password updated. Sign in with your new password.
+        </Alert>
+      )}
+      <form action={signIn} className="space-y-5">
+        <Field id="email" label="Email address">
           <input
             id="email"
             name="email"
             type="email"
             required
+            autoFocus
             defaultValue={state.email}
             autoComplete="email"
             placeholder="you@example.com"
-            className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className={inputCls}
           />
-        </div>
+        </Field>
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-            Password
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+              Password
+            </label>
+            <Link href="/forgot-password" className="text-xs font-semibold text-brand-700 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <input
             id="password"
             name="password"
             type="password"
             required
-            minLength={6}
             autoComplete="current-password"
-            placeholder="••••••••"
-            className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            placeholder="Your password"
+            className={inputCls}
           />
         </div>
 
-        {state.error && (
-          <p role="alert" className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">
-            {state.error}
-          </p>
-        )}
+        {state.error && <Alert tone="danger">{state.error}</Alert>}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className={`w-full rounded-xl py-3 font-semibold text-white transition disabled:opacity-60 ${c.button}`}
-        >
-          {pending ? "Signing in…" : "Sign in"}
-        </button>
+        <SubmitButton className="w-full" size="lg" variant={role === "admin" ? "dark" : "primary"} pendingLabel="Signing in…">
+          Sign in
+        </SubmitButton>
       </form>
 
-      {/* Admin accounts are provisioned internally, so there's no public sign-up. */}
       {role !== "admin" && (
-        <p className="mt-6 text-center text-sm text-slate-600">
-          New to DocDuniya?{" "}
-          <Link href={`/signup/${role}`} className="font-semibold text-brand-700 hover:underline">
-            Create {role === "doctor" ? "a doctor" : "an"} account
-          </Link>
-        </p>
+        <div className="mt-6 space-y-2 border-t border-slate-100 pt-6 text-center text-sm text-slate-600">
+          <p>
+            New to DocDuniya?{" "}
+            <Link href={`/signup/${role}`} className="font-semibold text-brand-700 hover:underline">
+              Create {role === "doctor" ? "a doctor" : "an"} account
+            </Link>
+          </p>
+          {c.other && (
+            <p>
+              Are you a {c.other}?{" "}
+              <Link href={`/login/${c.other}`} className="font-semibold text-brand-700 hover:underline">
+                Sign in here
+              </Link>
+            </p>
+          )}
+        </div>
       )}
-
-      <p className={`${role === "admin" ? "mt-6" : "mt-3"} text-center text-sm text-slate-600`}>
-        Are you a {c.other}?{" "}
-        <Link href={`/login/${c.other}`} className="font-semibold text-brand-700 hover:underline">
-          Login as {c.other === "doctor" ? "Doctor" : "Patient"}
-        </Link>
-      </p>
-    </div>
+    </AuthCard>
   );
 }

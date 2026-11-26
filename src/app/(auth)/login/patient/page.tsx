@@ -1,7 +1,7 @@
-import { LoginForm } from "@/features/auth/components/LoginForm";
+import { LoginPage } from "@/features/auth/components/LoginPage";
 
-export const metadata = { title: "Patient Login – DocDuniya" };
+export const metadata = { title: "Patient sign in – DocDuniya" };
 
-export default function PatientLoginPage() {
-  return <LoginForm role="patient" />;
+export default function PatientLoginPage({ searchParams }: PageProps<"/login/patient">) {
+  return <LoginPage role="patient" searchParams={searchParams} />;
 }

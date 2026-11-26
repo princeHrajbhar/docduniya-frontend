@@ -18,7 +18,7 @@ export function SiteFooter() {
         <div>
           <p className="font-semibold text-white">Company</p>
           <ul className="mt-4 space-y-2">
-            {publicNavigation.slice(1).map(({ href, label }) => (
+            {[...publicNavigation.slice(1), { href: "/privacy-policy", label: "Privacy Policy" }].map(({ href, label }) => (
               <li key={href}>
                 <Link href={href} className="hover:text-white">
                   {label}

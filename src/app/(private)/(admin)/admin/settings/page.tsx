@@ -1,7 +1,7 @@
-import { PagePlaceholder } from "@/components/ui/PagePlaceholder";
+import { AccountSecurity } from "@/features/account/AccountSecurity";
 
-export const metadata = { title: "Settings – DocDuniya" };
+export const metadata = { title: "Security – DocDuniya" };
 
-export default function Page() {
-  return <PagePlaceholder title="Settings" description="Platform configuration." />;
+export default function AdminSettingsPage() {
+  return <AccountSecurity role="admin" />;
 }

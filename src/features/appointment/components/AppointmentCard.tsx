@@ -1,106 +1,97 @@
-"use client";
+import Link from "next/link";
+import { BuildingIcon, CalendarIcon, ClockIcon, VideoIcon } from "@/components/ui/icons";
+import { ActionButton } from "@/components/ui/interactive";
+import { Avatar, Badge, ButtonLink, cx } from "@/components/ui/primitives";
+import { cancelAppointment, confirmAppointment } from "@/features/booking/actions";
+import { dateLabel, modeLabel, money, timeLabel } from "@/lib/format";
+import type { AppointmentView } from "@/services/patient";
+import { appointmentStatus } from "../status";
 
-import { useState } from "react";
-import {
-  BuildingIcon,
-  CalendarIcon,
-  VideoIcon,
-  XCircleIcon,
-} from "@/components/ui/icons";
-import { initials } from "@/lib/utils";
-import { formatDate } from "@/lib/date";
-import type { Appointment } from "@/types/appointment";
-import { StatusBadge } from "./StatusBadge";
+const CANCELLABLE = new Set(["HELD", "CONFIRMED"]);
 
-export function AppointmentCard({ appointment: a, today }: { appointment: Appointment; today: string }) {
-  const [reminder, setReminder] = useState(true);
-  const dateLabel = `${a.date === today ? "Today, " : ""}${formatDate(a.date, {
-    weekday: a.date === today ? undefined : "short",
-  })}`;
+export function AppointmentCard({ appointment: a, compact }: { appointment: AppointmentView; compact?: boolean }) {
+  const status = appointmentStatus(a.status, a.paymentPolicy);
+  const doctor = a.details?.doctor.name ?? "Your doctor";
+  const facility = a.details?.facility.name;
+  const online = a.offering.mode !== "IN_PERSON";
+  const needsPayment = a.status === "HELD" && a.paymentPolicy === "PREPAY";
+  const needsConfirm = a.status === "HELD" && a.paymentPolicy !== "PREPAY";
 
   return (
-    <article
-      className={`flex flex-col rounded-2xl border border-l-4 border-slate-200 bg-white p-5 shadow-sm ${a.accent}`}
-    >
+    <article className={cx("relative flex flex-col rounded-2xl border bg-white p-5 shadow-xs transition hover:shadow-md", needsPayment || needsConfirm ? "border-amber-200" : "border-slate-200/80")}>
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            className={`grid h-11 w-11 place-items-center rounded-full text-sm font-semibold ${a.avatarColor}`}
-          >
-            {initials(a.doctor)}
-          </span>
-          <div>
-            <p className="font-semibold">{a.doctor}</p>
-            <p className="text-sm text-slate-500">{a.speciality}</p>
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar name={doctor} seed={a.doctorId} />
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-slate-900">
+              <Link href={`/patient/appointments/${a.id}`} className="hover:text-brand-700">
+                {doctor}
+              </Link>
+            </p>
+            <p className="truncate text-sm text-slate-500">{a.offering.name}</p>
           </div>
         </div>
-        <StatusBadge status={a.status} />
+        <Badge tone={status.tone} dot>
+          {status.label}
+        </Badge>
       </div>
 
-      <div className="mt-5 space-y-3 text-sm">
-        <div className="flex gap-3">
-          <IconChip>
-            <CalendarIcon className="h-4 w-4" />
-          </IconChip>
-          <div>
-            <p className="font-medium">{dateLabel}</p>
-            <p className="text-xs text-slate-500">
-              {a.start} – {a.end}
-            </p>
-          </div>
+      <dl className={cx("grid gap-3 text-sm", compact ? "mt-4" : "mt-5 sm:grid-cols-2")}>
+        <div className="flex items-center gap-2.5">
+          <CalendarIcon className="h-4 w-4 text-slate-400" />
+          <dt className="sr-only">Date</dt>
+          <dd className="font-medium text-slate-800">{dateLabel(a.startAt, { weekday: "short" })}</dd>
         </div>
-        <div className="flex gap-3">
-          <IconChip>
-            {a.mode === "video" ? (
-              <VideoIcon className="h-4 w-4" />
-            ) : (
-              <BuildingIcon className="h-4 w-4" />
-            )}
-          </IconChip>
-          <div>
-            <p className="font-medium">
-              {a.mode === "video" ? "Video Consultation" : "In-clinic Visit"}
-            </p>
-            {a.mode === "video" ? (
-              <a href="#" className="text-xs text-brand-700 hover:underline">
-                Join meeting (opens 10 mins before)
-              </a>
-            ) : (
-              <p className="text-xs text-slate-500">{a.location}</p>
-            )}
-          </div>
+        <div className="flex items-center gap-2.5">
+          <ClockIcon className="h-4 w-4 text-slate-400" />
+          <dt className="sr-only">Time</dt>
+          <dd className="font-medium text-slate-800">
+            {timeLabel(a.startAt)} – {timeLabel(a.endAt)}
+          </dd>
         </div>
-      </div>
+        <div className="flex items-center gap-2.5 sm:col-span-2">
+          {online ? <VideoIcon className="h-4 w-4 text-slate-400" /> : <BuildingIcon className="h-4 w-4 text-slate-400" />}
+          <dt className="sr-only">Where</dt>
+          <dd className="truncate text-slate-600">
+            {modeLabel(a.offering.mode)}
+            {facility && ` · ${facility}`}
+          </dd>
+        </div>
+      </dl>
 
-      <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-medium text-slate-700">
-        <button type="button" className="flex items-center gap-1.5 hover:text-brand-700">
-          <CalendarIcon className="h-3.5 w-3.5" />
-          Reschedule
-        </button>
-        <button type="button" className="flex items-center gap-1.5 hover:text-rose-600">
-          <XCircleIcon className="h-3.5 w-3.5" />
-          Cancel
-        </button>
-        <label className="flex cursor-pointer items-center gap-2">
-          Reminder
-          <input
-            type="checkbox"
-            role="switch"
-            checked={reminder}
-            onChange={(e) => setReminder(e.target.checked)}
-            className="peer sr-only"
-          />
-          <span className="relative h-4 w-7 rounded-full bg-slate-300 transition-colors peer-checked:bg-brand-700 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-300 after:absolute after:top-0.5 after:left-0.5 after:h-3 after:w-3 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-3" />
-        </label>
-      </div>
+      {!compact && (
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+          <span className="mr-auto text-sm font-semibold text-slate-900">{money(a.price.totalMinor, a.price.currency)}</span>
+          {needsPayment && (
+            <ButtonLink href={`/patient/appointments/${a.id}?checkout=1`} size="sm">
+              Pay now
+            </ButtonLink>
+          )}
+          {needsConfirm && (
+            <ActionButton action={confirmAppointment.bind(null, a.id, a.version)} variant="primary">
+              Confirm
+            </ActionButton>
+          )}
+          {CANCELLABLE.has(a.status) && (
+            <ActionButton
+              action={cancelAppointment.bind(null, a.id, a.version)}
+              variant="ghost"
+              confirm={{
+                title: "Cancel this appointment?",
+                description: `${doctor}, ${dateLabel(a.startAt, { weekday: "short" })} at ${timeLabel(a.startAt)}. Any refund follows the clinic's cancellation policy.`,
+                confirmLabel: "Cancel appointment",
+                tone: "danger",
+                reason: { label: "Reason for cancelling", placeholder: "E.g. I'm feeling better", minLength: 5 },
+              }}
+            >
+              Cancel
+            </ActionButton>
+          )}
+          <ButtonLink href={`/patient/appointments/${a.id}`} variant="secondary" size="sm">
+            Details
+          </ButtonLink>
+        </div>
+      )}
     </article>
-  );
-}
-
-function IconChip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-700">
-      {children}
-    </span>
   );
 }

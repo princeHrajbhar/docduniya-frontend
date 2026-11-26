@@ -99,7 +99,7 @@ export default function AboutPage() {
             </p>
             <p>
               Every doctor on our platform is verified, every fee is shown upfront, and every
-              patient's data is kept private and secure.
+              patient&apos;s data is kept private and secure.
             </p>
           </div>
         </div>

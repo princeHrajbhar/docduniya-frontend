@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DoctorCard } from "@/features/doctor/components/DoctorCard";
-import { doctors } from "@/features/doctor/data";
+import { groupListings } from "@/features/doctor/listing";
+import { featuredDoctors } from "@/services/catalog";
 import { PatientLeadForm } from "@/features/leads/components/PatientLeadForm";
 import {
   howItWorks,
@@ -40,13 +41,13 @@ export function Hero() {
               consultations, all in one place.
             </p>
 
-            <form action="#doctors" className="mt-8 flex flex-col gap-3 rounded-2xl bg-white p-2 shadow-2xl sm:flex-row">
+            <form action="/doctors" className="mt-8 flex flex-col gap-3 rounded-2xl bg-white p-2 shadow-2xl sm:flex-row">
               <input
                 name="q"
                 placeholder="Search doctors, specialities, symptoms…"
                 className="flex-1 rounded-xl px-4 py-3 text-slate-900 outline-none"
               />
-              <button className="rounded-xl bg-brand-600 px-6 py-3 font-semibold hover:bg-brand-700">
+              <button type="submit" className="rounded-xl bg-brand-600 px-6 py-3 font-semibold hover:bg-brand-700">
                 Search
               </button>
             </form>
@@ -213,13 +214,17 @@ export function HowItWorks() {
 }
 
 /* 6. India's top doctors */
-export function TopDoctors() {
+export async function TopDoctors() {
+  // Live, verified doctors from the directory (cached for a few minutes).
+  const listings = await featuredDoctors();
+  const doctors = groupListings(listings).slice(0, 4);
+  if (doctors.length === 0) return null;
   return (
     <section id="doctors" className="mx-auto max-w-7xl px-6 py-20">
       <SectionHeading
         eyebrow="Meet the Experts"
-        title="India's Top Doctors"
-        sub="Highly rated specialists from leading hospitals across the country."
+        title="Verified doctors on DocDuniya"
+        sub="Every profile is checked against the doctor's medical council registration."
       />
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {doctors.map((d) => (

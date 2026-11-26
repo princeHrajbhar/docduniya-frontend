@@ -1,7 +1,7 @@
-import { PatientSignupForm } from "@/features/auth/components/PatientSignupForm";
+import { SignupWizard } from "@/features/auth/components/SignupWizard";
 
-export const metadata = { title: "Patient Sign Up – DocDuniya" };
+export const metadata = { title: "Create a patient account – DocDuniya" };
 
 export default function PatientSignupPage() {
-  return <PatientSignupForm />;
+  return <SignupWizard kind="patient" />;
 }

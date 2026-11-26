@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { doctorTestimonials, patientTestimonials, type Testimonial } from "@/features/home/data";
-import { initials } from "@/lib/utils";
+import { initials } from "@/lib/format";
 
 export function Testimonials() {
   // Moving content needs a way to stop it (WCAG 2.2.2); hover alone doesn't help keyboard or touch users.
