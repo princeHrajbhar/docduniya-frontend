@@ -30,6 +30,7 @@ function flattenFieldErrors(errors: unknown): Record<string, string> {
 /** Messages people can act on, for the error codes the UI is most likely to meet. */
 const FRIENDLY: Record<string, string> = {
   INVALID_CREDENTIALS: "That email and password don't match. Check them and try again.",
+  ADMIN_LOGIN_REQUIRED: "This is a DocDuniya staff account. Sign in through the administrator portal.",
   ACCOUNT_NOT_VERIFIED: "Please verify your email before signing in.",
   ACCOUNT_DISABLED: "This account has been disabled. Contact support for help.",
   ACCOUNT_LOCKED: "Too many failed attempts. Your account is locked for 15 minutes.",

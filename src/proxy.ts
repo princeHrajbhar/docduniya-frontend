@@ -8,7 +8,9 @@ import {
   SESSION_COOKIE,
   cookieOptions,
   decodeSession,
+  ADMIN_LOGIN_PATH,
   homeFor,
+  loginPathFor,
   refreshTokens,
   type TokenPair,
 } from "@/lib/session-core";
@@ -46,12 +48,15 @@ export async function proxy(request: NextRequest) {
 
   let response: NextResponse;
   if (area && !session) {
-    const login = new URL(`/login/${area}`, request.url);
+    const login = new URL(loginPathFor(area), request.url);
     login.searchParams.set("next", `${pathname}${search}`);
     response = NextResponse.redirect(login);
   } else if (area && session && (session.role !== area || pathname === `/${area}`)) {
     response = NextResponse.redirect(new URL(homeFor(session.role), request.url));
-  } else if (session && (pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
+  } else if (
+    session &&
+    (pathname.startsWith("/login") || pathname.startsWith("/signup") || pathname === ADMIN_LOGIN_PATH)
+  ) {
     response = NextResponse.redirect(new URL(homeFor(session.role), request.url));
   } else if (pathname.startsWith("/onboarding") && signedOut) {
     response = NextResponse.redirect(new URL("/login", request.url));

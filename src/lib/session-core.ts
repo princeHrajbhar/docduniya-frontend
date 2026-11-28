@@ -49,6 +49,14 @@ export function decodeSession(value: string | undefined): Session | null {
   return null;
 }
 
+/** The administrator portal is separate from the patient and doctor sign-in. */
+export const ADMIN_LOGIN_PATH = "/administrator/login";
+
+/** Where each role signs in. */
+export function loginPathFor(role: Role) {
+  return role === "admin" ? ADMIN_LOGIN_PATH : `/login/${role}`;
+}
+
 /** Where each role lands after signing in. */
 export function homeFor(role: Role) {
   return `/${role}/dashboard`;

@@ -12,6 +12,7 @@ import {
   cookieOptions,
   decodeSession,
   encodeSession,
+  loginPathFor,
   type Role,
   type Session,
   type TokenPair,
@@ -34,7 +35,7 @@ export async function requireSession(role: Role): Promise<Session> {
   // part of a prerendered or prefetched shell.
   await connection();
   const session = await getSession();
-  if (!session) redirect(`/login/${role}`);
+  if (!session) redirect(loginPathFor(role));
   if (session.role !== role) redirect(`/${session.role}/dashboard`);
   return session;
 }

@@ -40,6 +40,40 @@ export async function completeMfa(
   return finishSignIn(res.data.accessToken, res.headers, role);
 }
 
+// ── Administrator portal: password, then a code emailed on every sign-in ──────
+
+export type AdminCodeStep = { challengeToken: string; sentTo: string; expiresAt: string };
+
+/** Password step. The backend emails a code; there is no session yet. */
+export async function adminSignIn(email: string, password: string): Promise<AdminCodeStep> {
+  const data = await api<AdminCodeStep>("/auth/admin/login", {
+    method: "POST",
+    auth: false,
+    body: { email, password },
+  });
+  return { challengeToken: data.challengeToken, sentTo: data.sentTo, expiresAt: data.expiresAt };
+}
+
+/** Emails a fresh code for the same attempt; the previous code stops working. */
+export async function resendAdminSignInCode(challengeToken: string) {
+  return api<Omit<AdminCodeStep, "challengeToken">>("/auth/admin/resend-code", {
+    method: "POST",
+    auth: false,
+    body: { challengeToken },
+  });
+}
+
+/** Code step: signs in, or asks for the authenticator code when one is enrolled. */
+export async function verifyAdminSignInCode(challengeToken: string, code: string): Promise<SignInOutcome> {
+  const res = await apiEnvelope<LoginResult>("/auth/admin/verify", {
+    method: "POST",
+    auth: false,
+    body: { challengeToken, code },
+  });
+  if (res.data.mfaRequired) return { kind: "mfa", challengeToken: res.data.challengeToken };
+  return finishSignIn(res.data.accessToken, res.headers, "admin");
+}
+
 async function finishSignIn(accessToken: string, headers: Headers, role: Role): Promise<SignInOutcome> {
   const refreshToken = readSetCookie(headers, "refreshToken");
   if (!refreshToken) throw new ApiError(502, "NO_REFRESH_TOKEN", "Sign-in didn't complete. Please try again.");

@@ -31,6 +31,7 @@ export type NavSection = { title?: string; items: NavItem[] };
 /** Sidebar links for each signed-in area. */
 export const navigation: Record<Role, NavSection[]> = {
   patient: [
+    { title: "Connected services", items: [{ href: "/workspace/patient", label: "All care services", Icon: ClipboardIcon }, { href: "/workspace/provider", label: "Manage a clinic", Icon: BuildingIcon }] },
     {
       items: [
         { href: "/patient/dashboard", label: "Overview", Icon: DashboardIcon },
@@ -55,6 +56,7 @@ export const navigation: Record<Role, NavSection[]> = {
     },
   ],
   doctor: [
+    { title: "Care delivery", items: [{ href: "/workspace/provider", label: "Practice workspace", Icon: BuildingIcon }] },
     {
       items: [
         { href: "/doctor/dashboard", label: "Overview", Icon: DashboardIcon },
@@ -75,6 +77,7 @@ export const navigation: Record<Role, NavSection[]> = {
     },
   ],
   admin: [
+    { title: "Administration", items: [{ href: "/workspace/admin", label: "All platform services", Icon: ActivityIcon }, { href: "/workspace/provider", label: "Provider workspace", Icon: BuildingIcon }] },
     {
       items: [{ href: "/admin/dashboard", label: "Overview", Icon: DashboardIcon }],
     },
